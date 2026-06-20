@@ -1,0 +1,17 @@
+{
+  "name": "Nexus",
+  "short_name": "Nexus",
+  "description": "개인 대시보드",
+  "start_url": "/",
+  "display": "standalone",
+  "background_color": "#18181b",
+  "theme_color": "#18181b",
+  "icons": [
+    {
+      "src": "icon.png",
+      "sizes": "512x512",
+      "type": "image/png",
+      "purpose": "any maskable"
+    }
+  ]
+}
