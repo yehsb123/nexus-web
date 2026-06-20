@@ -110,6 +110,24 @@ a{color:var(--accent);text-decoration:none}
 .sb-section-body{overflow:hidden;transition:max-height .2s}
 .sb-section-body.s-collapsed{max-height:0!important;padding:0!important}
 
+/* Hide 오늘 할 일 section */
+#todoSection{display:none}
+
+/* Trash button at sidebar bottom */
+.sb-nav{position:relative;padding-bottom:40px}
+#navTrash{position:absolute;bottom:0;left:0;right:0}
+
+/* Subtle separator between blocks (not dividers) */
+.blk+.blk:not([data-t="divider"]){border-top:1px solid rgba(255,255,255,0.03)}
+.blk[data-t="divider"]+.blk{border-top:none}
+
+/* New document dropdown */
+.new-doc-wrap{position:relative;display:inline-block}
+.new-doc-wrap .new-doc-dropdown{display:none;position:absolute;top:100%;right:0;background:var(--card);border:1px solid var(--border);border-radius:8px;padding:4px;z-index:50;min-width:120px;box-shadow:var(--shadow-menu);margin-top:4px}
+.new-doc-wrap .new-doc-dropdown.show{display:block}
+.new-doc-wrap .new-doc-dropdown button{display:block;width:100%;text-align:left;padding:6px 10px;background:none;border:none;color:var(--text);font-size:11px;cursor:pointer;border-radius:4px;white-space:nowrap}
+.new-doc-wrap .new-doc-dropdown button:hover{background:var(--hover)}
+
 /* MAIN */
 .main{flex:1;display:flex;flex-direction:column;overflow:hidden;min-width:0}
 .topbar{padding:12px 28px;border-bottom:1px solid rgba(255,255,255,0.06);background:rgba(15,15,18,0.8);backdrop-filter:blur(12px);-webkit-backdrop-filter:blur(12px);display:flex;align-items:center;gap:10px;min-height:52px;flex-wrap:wrap;position:relative}
@@ -502,7 +520,7 @@ a{color:var(--accent);text-decoration:none}
     <div class="sb-section-hdr" onclick="toggleSbSection('proj')"><span class="s-arrow open" id="projArrow">▶</span> 프로젝트</div>
     <div class="sb-section-body" id="projBody" style="padding:0 8px 4px"><div id="projectLinks"></div></div>
   </div>
-  <div class="sb-label" style="display:flex;align-items:center;justify-content:space-between;gap:4px">페이지 <span style="display:flex;gap:3px;margin-left:auto"><button onclick="newPage('memo')" style="background:var(--card);border:1px solid var(--border);color:var(--text);cursor:pointer;font-size:10px;padding:2px 6px;border-radius:4px" title="새 메모">📝+</button><button onclick="newWBS()" style="background:var(--card);border:1px solid var(--border);color:var(--text);cursor:pointer;font-size:10px;padding:2px 6px;border-radius:4px" title="새 WBS">📋+</button><button onclick="addFolder()" style="background:var(--card);border:1px solid var(--border);color:var(--text);cursor:pointer;font-size:10px;padding:2px 6px;border-radius:4px" title="새 폴더">📁+</button></span></div>
+  <div class="sb-label" style="display:flex;align-items:center;justify-content:space-between;gap:4px">페이지 <span class="new-doc-wrap" style="margin-left:auto"><button onclick="toggleNewDocMenu(event)" style="background:var(--card);border:1px solid var(--border);color:var(--text);cursor:pointer;font-size:10px;padding:2px 6px;border-radius:4px" title="새 문서">＋ 새 문서</button><div class="new-doc-dropdown" id="newDocDropdown"><button onclick="newPage('memo');closeNewDocMenu()">📝 메모</button><button onclick="newWBS();closeNewDocMenu()">📋 WBS</button><button onclick="addFolder();closeNewDocMenu()">📁 폴더</button></div></span></div>
   <div class="pg-list" id="pgList"></div>
 </div>
 
@@ -3682,7 +3700,7 @@ function renderCal(p){
   h+='</div>';a.innerHTML=h;
 }
 function dF(y,m,d){const dt=new Date(y,m,d);return `${dt.getFullYear()}-${String(dt.getMonth()+1).padStart(2,'0')}-${String(dt.getDate()).padStart(2,'0')}`}
-function eFor(p,dt){return(p.events||[]).filter(e=>{const start=e.date;const end=e.endDate||e.date;return dt>=start&&dt<=end}).map(e=>`<div class="ev ${e.priority||'default'}" onclick="event.stopPropagation();editEv('${e.id}')" title="클릭하여 수정"><span>${esc(e.title)}</span><span class="ev-btn" onclick="event.stopPropagation();editEv('${e.id}')">✏</span></div>`).join('')}
+function eFor(p,dt){const evts=(p.events||[]).filter(e=>{const start=e.date;const end=e.endDate||e.date;return dt>=start&&dt<=end});const maxShow=2;let html=evts.slice(0,maxShow).map(e=>`<div class="ev ${e.priority||'default'}" onclick="event.stopPropagation();editEv('${e.id}')" title="클릭하여 수정"><span>${esc(e.title)}</span><span class="ev-btn" onclick="event.stopPropagation();editEv('${e.id}')">✏</span></div>`).join('');if(evts.length>maxShow)html+=`<div class="ev default" style="text-align:center;font-weight:600;opacity:.8;cursor:pointer" onclick="event.stopPropagation()">+${evts.length-maxShow}개</div>`;return html}
 function calP(){calM--;if(calM<0){calM=11;calY--}if(view==='cal')renderGlobalCal();else renderCal(pg())}
 function calN(){calM++;if(calM>11){calM=0;calY++}if(view==='cal')renderGlobalCal();else renderCal(pg())}
 function calT(){const n=new Date();calY=n.getFullYear();calM=n.getMonth();if(view==='cal')renderGlobalCal();else renderCal(pg())}
@@ -3704,14 +3722,14 @@ function renderGlobalCal(){
   const first=new Date(calY,calM,1),last=new Date(calY,calM+1,0),sd=first.getDay();
   const ts=dF(now.getFullYear(),now.getMonth(),now.getDate());
   const totalCells=42;const pl=new Date(calY,calM,0);
-  function gEvHtml(dt){return allEvts.filter(e=>{
+  function gEvHtml(dt){const evts=allEvts.filter(e=>{
     const start=e.date;const end=e.endDate||e.date;
     return dt>=start&&dt<=end;
-  }).map(e=>{
+  });const maxShow=2;let html=evts.slice(0,maxShow).map(e=>{
     const c=evtColor(e.color);
     const time=e.startTime?`<span style="font-size:9px;opacity:.7">${e.startTime}</span> `:'';
     return`<div class="ev" style="background:${c}22;color:${c};border-left:2px solid ${c}" onclick="event.stopPropagation();editGEv('${e.id}')">${time}<span>${esc(e.title)}</span></div>`;
-  }).join('')}
+  }).join('');if(evts.length>maxShow)html+=`<div class="ev" style="text-align:center;font-weight:600;opacity:.8;background:rgba(255,255,255,0.05);color:var(--dim);cursor:pointer" onclick="event.stopPropagation()">+${evts.length-maxShow}개</div>`;return html}
   // 이전 달
   for(let i=sd-1;i>=0;i--){const d=pl.getDate()-i;const dt=dF(calY,calM-1,d);const dow=(sd-1-i)%7;h+=`<div class="cal-cell other ${dow===0?'sun':dow===6?'sat':''}" onclick="openGEvM('${dt}')"><div class="dn">${d}</div>${gEvHtml(dt)}</div>`}
   // 현재 달
@@ -4847,6 +4865,11 @@ function openMobileSb(){document.getElementById('sidebar').classList.add('mobile
 function closeMobileSb(){document.getElementById('sidebar').classList.remove('mobile-open');document.getElementById('sbOverlay').classList.remove('show')}
 function toggleWebMore(){const m=document.getElementById('webMoreMenu');m.style.display=m.style.display==='none'?'block':'none'}
 document.addEventListener('click',e=>{const m=document.getElementById('webMoreMenu');if(m&&!e.target.closest('.web-more-btn')&&!e.target.closest('#webMoreMenu'))m.style.display='none'});
+
+// New document dropdown
+function toggleNewDocMenu(e){e.stopPropagation();const d=document.getElementById('newDocDropdown');d.classList.toggle('show')}
+function closeNewDocMenu(){document.getElementById('newDocDropdown').classList.remove('show')}
+document.addEventListener('click',e=>{if(!e.target.closest('.new-doc-wrap')){closeNewDocMenu()}});
 
 // ══════════════════════════════════════════
 // TERMINAL (다중 탭 + 분할)
