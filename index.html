@@ -815,13 +815,9 @@ async function init(){
   else if(lastView==='trash'){goTrash()}
   else{goHome()}
   if(D.claudeMd&&window.nexus?.claudeMdSave){window.nexus.claudeMdSave(D.claudeMd).catch(()=>{})}
-  // 오늘 일정이 있으면 데일리 자동 생성
+  // 매일 자동 데일리 생성 (미완료 할 일 이월 포함)
   setTimeout(()=>{
-    const now=new Date();
-    const today=dF(now.getFullYear(),now.getMonth(),now.getDate());
-    const hasEvents=(D.globalEvents||[]).some(e=>e.date===today);
-    const alreadyExists=D.pages.some(p=>p.icon==='📋'&&p.title&&p.title.startsWith(today));
-    if(hasEvents&&!alreadyExists)createDailyTodo();
+    createDailyTodo();
   },500);
 }
 function defaultData(){
