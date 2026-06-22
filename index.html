@@ -2241,7 +2241,9 @@ function mkBlk(block){
   el.addEventListener('paste',e=>{
     e.preventDefault();
     const text=(e.clipboardData||window.clipboardData).getData('text/plain');
-    document.execCommand('insertText',false,text);
+    const sel=window.getSelection();
+    if(sel.rangeCount){const range=sel.getRangeAt(0);range.deleteContents();range.insertNode(document.createTextNode(text));range.collapse(false);sel.removeAllRanges();sel.addRange(range)}
+    el.dispatchEvent(new Event('input',{bubbles:true}));
   });
   el.addEventListener('keydown',e=>{
     if(e.key==='Enter'&&!e.shiftKey){e.preventDefault();const p2=pg(),idx=p2.blocks.findIndex(x=>x.id===block.id);const kt=['todo','bullet'].includes(block.type)?block.type:'text';const nb={id:gid(),type:kt,content:''};p2.blocks.splice(idx+1,0,nb);autoSave();const ne=mkBlk(nb);const wrap=el.closest('[style*="position"]')||el;wrap.after(ne);const editable=ne.querySelector('[contenteditable="true"]');if(editable)editable.focus();else ne.focus()}
