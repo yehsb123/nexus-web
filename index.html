@@ -1000,13 +1000,11 @@ function updTrashCount(){
   if(el)el.textContent=(D.trash&&D.trash.length)?D.trash.length:'';
 }
 function openPg(id){view='page';curId=id;saveViewState();document.getElementById('navHome').classList.remove('active');document.getElementById('navCal').classList.remove('active');renderList();renderPage();closeMobileSb();
-  // 맨 아래로 스크롤 + 마지막 블록 포커스 (렌더링 완료 후)
+  // 맨 위로 스크롤
   requestAnimationFrame(()=>{setTimeout(()=>{
     const area=document.getElementById('area');
-    if(area)area.scrollTop=area.scrollHeight;
-    const blocks=document.querySelectorAll('#blocks .blk[contenteditable="true"]');
-    if(blocks.length){const last=blocks[blocks.length-1];last.focus();last.scrollIntoView({block:'end'})}
-  },200)});
+    if(area)area.scrollTop=0;
+  },100)});
 }
 function openProjectPages(projId){
   const r=D.relations||{};
