@@ -2238,6 +2238,11 @@ function mkBlk(block){
     el.classList.toggle('empty',!el.textContent);
     el.scrollIntoView({block:'nearest',behavior:'smooth'});
   });
+  el.addEventListener('paste',e=>{
+    e.preventDefault();
+    const text=(e.clipboardData||window.clipboardData).getData('text/plain');
+    document.execCommand('insertText',false,text);
+  });
   el.addEventListener('keydown',e=>{
     if(e.key==='Enter'&&!e.shiftKey){e.preventDefault();const p2=pg(),idx=p2.blocks.findIndex(x=>x.id===block.id);const kt=['todo','bullet'].includes(block.type)?block.type:'text';const nb={id:gid(),type:kt,content:''};p2.blocks.splice(idx+1,0,nb);autoSave();const ne=mkBlk(nb);const wrap=el.closest('[style*="position"]')||el;wrap.after(ne);const editable=ne.querySelector('[contenteditable="true"]');if(editable)editable.focus();else ne.focus()}
     if(e.key==='Backspace'&&!el.textContent){e.preventDefault();rmBlk(block.id)}
