@@ -721,7 +721,7 @@ const ICON_GROUPS={
 const ICONS=Object.values(ICON_GROUPS).flat();
 const BT=[
   {t:'text',l:'텍스트',h:'일반'},{t:'h1',l:'제목1',h:'큰'},{t:'h2',l:'제목2',h:'중간'},{t:'h3',l:'제목3',h:'작은'},
-  {t:'bullet',l:'목록',h:'불릿'},{t:'todo',l:'할 일',h:'체크'},{t:'quote',l:'인용',h:'인용문'},
+  {t:'bullet',l:'목록',h:'불릿'},{t:'todo',l:'☑ 체크박스',h:'체크'},{t:'quote',l:'인용',h:'인용문'},
   {t:'code',l:'코드',h:'코드'},{t:'callout',l:'콜아웃',h:'강조'},{t:'toggle',l:'▶ 토글',h:'접기/펼치기'},{t:'image',l:'🖼 이미지',h:'사진'},{t:'divider',l:'구분선',h:'───'}];
 
 function gid(){return Date.now().toString(36)+Math.random().toString(36).slice(2,7)}
@@ -2676,6 +2676,29 @@ document.addEventListener('keydown',e=>{
   }
 });
 function rmBlk(bid){const p2=pg();if(p2.blocks.length<=1)return;p2.blocks.splice(p2.blocks.findIndex(b=>b.id===bid),1);p2.updatedAt=new Date().toISOString();save();renderMemo(p2)}
+function splitBlkLines(bid){
+  const p2=pg();if(!p2)return;
+  const idx=p2.blocks.findIndex(b=>b.id===bid);if(idx<0)return;
+  const blk=p2.blocks[idx];
+  const tmp=document.createElement('div');
+  tmp.innerHTML=(blk.html||blk.content||'').replace(/<br\s*\/?>/gi,'\n').replace(/<\/(div|p|li)>/gi,'\n');
+  const text=tmp.textContent||tmp.innerText||'';
+  const lines=text.split(/\n/).map(l=>l.trim()).filter(Boolean);
+  if(lines.length<=1){toast('분리할 줄이 없습니다');return}
+  const bt=blk.type||'text';
+  const newBlocks=lines.map(l=>({id:gid(),type:bt,content:l,done:false}));
+  p2.blocks.splice(idx,1,...newBlocks);
+  p2.updatedAt=new Date().toISOString();autoSave();renderMemo(p2);
+  toast(lines.length+'개 블록으로 분리');
+}
+function multiChgType(type){
+  const selected=document.querySelectorAll('.blk.multi-sel');
+  const ids=Array.from(selected).map(b=>b.dataset.bid).filter(Boolean);
+  const p2=pg();if(!p2)return;
+  ids.forEach(id=>{const b=p2.blocks.find(x=>x.id===id);if(b)b.type=type});
+  p2.updatedAt=new Date().toISOString();autoSave();renderMemo(p2);
+  toast(ids.length+'개 블록 타입 변경');
+}
 function showBM(anchor,bid){const m=document.getElementById('bmenu'),r=anchor.getBoundingClientRect();m.style.display='block';m.style.left=Math.min(r.left,innerWidth-200)+'px';m.style.top=Math.min(r.bottom+4,innerHeight-300)+'px';m.innerHTML=BT.map(t=>`<button onmousedown="chgBT('${bid}','${t.t}')">${t.l}<span class="hint">${t.h}</span></button>`).join('');setTimeout(()=>document.addEventListener('click',hideBM,{once:true}),10)}
 function hideBM(){document.getElementById('bmenu').style.display='none'}
 function chgBT(bid,type){const p2=pg(),b=p2.blocks.find(x=>x.id===bid);if(!b)return;b.type=type;p2.updatedAt=new Date().toISOString();autoSave();hideBM();renderMemo(p2);const el=document.querySelector(`[data-bid="${bid}"]`);if(el?.contentEditable==='true')el.focus()}
@@ -2686,30 +2709,36 @@ function showCtxMenu(e,bid){
   e.preventDefault();
   hideCtx();hideBM();
   const p2=pg();if(!p2)return;
+  const m=document.getElementById('ctxMenu');
+  // 다중 선택 상태면 일괄 메뉴
+  const multiSel=document.querySelectorAll('.blk.multi-sel');
+  if(multiSel.length>1){
+    const ids=Array.from(multiSel).map(b=>b.dataset.bid).filter(Boolean);
+    let html='<div class="ctx-section">선택된 '+ids.length+'개 블록</div>';
+    html+=BT.map(t=>`<button onclick="multiChgType('${t.t}');hideCtx()">${t.l} 으로 일괄 변경</button>`).join('');
+    html+='<div class="ctx-divider"></div>';
+    html+=`<button onclick="multiCopy();hideCtx()">📋 복사</button>`;
+    html+=`<button onclick="multiDelete();hideCtx()" class="ctx-danger">🗑 일괄 삭제</button>`;
+    m.innerHTML=html;
+    m.style.display='block';m.style.left=Math.min(e.clientX,innerWidth-220)+'px';m.style.top=Math.min(e.clientY,innerHeight-300)+'px';
+    setTimeout(()=>document.addEventListener('click',hideCtx,{once:true}),10);
+    return;
+  }
   const idx=p2.blocks.findIndex(b=>b.id===bid);
   const blk=p2.blocks[idx];if(!blk)return;
-  const m=document.getElementById('ctxMenu');
-  const typeLabels={text:'텍스트',h1:'제목1',h2:'제목2',h3:'제목3',bullet:'목록',todo:'할 일',quote:'인용',code:'코드',callout:'콜아웃',image:'이미지',divider:'구분선'};
+  const typeLabels={text:'텍스트',h1:'제목1',h2:'제목2',h3:'제목3',bullet:'목록',todo:'☑ 체크박스',quote:'인용',code:'코드',callout:'콜아웃',image:'이미지',divider:'구분선'};
   let html='<div class="ctx-section">블록 타입 변경</div>';
   html+=BT.map(t=>{
     const active=blk.type===t.t?' style="color:var(--accent);font-weight:600"':'';
     return `<button onclick="chgBT('${bid}','${t.t}');hideCtx()"${active}>${t.l}<span class="ctx-hint">${t.h}</span></button>`;
   }).join('');
   html+='<div class="ctx-divider"></div>';
-  html+='<div class="ctx-section">위에 삽입</div>';
-  html+='<div style="display:flex;flex-wrap:wrap;gap:2px;padding:2px 4px">';
-  html+=BT.map(t=>`<button style="flex:0 0 auto;padding:4px 7px;font-size:11px" onclick="insertBlkAt(${idx},'${t.t}');hideCtx()" title="${t.h}">${t.l}</button>`).join('');
-  html+='</div>';
-  html+='<div class="ctx-section">아래에 삽입</div>';
-  html+='<div style="display:flex;flex-wrap:wrap;gap:2px;padding:2px 4px">';
-  html+=BT.map(t=>`<button style="flex:0 0 auto;padding:4px 7px;font-size:11px" onclick="insertBlkAt(${idx+1},'${t.t}');hideCtx()" title="${t.h}">${t.l}</button>`).join('');
-  html+='</div>';
-  html+='<div class="ctx-divider"></div>';
   html+='<div class="ctx-section">편집</div>';
   html+=`<button onclick="dupBlk('${bid}');hideCtx()">📋 복제</button>`;
   html+=`<button onclick="moveBlk('${bid}','up');hideCtx()">⬆ 위로 이동</button>`;
   html+=`<button onclick="moveBlk('${bid}','down');hideCtx()">⬇ 아래로 이동</button>`;
   html+=`<button onclick="wrapInColumns('${bid}');hideCtx()">◫ 컬럼 추가</button>`;
+  html+=`<button onclick="splitBlkLines('${bid}');hideCtx()">↕ 줄 분리</button>`;
   html+='<div class="ctx-divider"></div>';
   html+=`<button class="ctx-danger" onclick="rmBlk('${bid}');hideCtx()">🗑 삭제</button>`;
   m.innerHTML=html;
@@ -4837,8 +4866,8 @@ document.addEventListener('keydown',e=>{
     if(ae&&ae.contentEditable==='true'){e.preventDefault();document.execCommand('selectAll');return}
     // 시트 셀 편집 중이면 해당 셀만 선택
     if(ae&&ae.tagName==='INPUT'&&ae.closest('.stbl')){e.preventDefault();ae.select();return}
-    // 그 외: area 영역만 선택
-    const area=document.getElementById('area');
+    // 그 외: blocks 영역만 선택
+    const area=document.getElementById('blocks');
     if(area){e.preventDefault();const range=document.createRange();range.selectNodeContents(area);const sel=window.getSelection();sel.removeAllRanges();sel.addRange(range)}
   }
   if(e.ctrlKey&&e.key==='`'){e.preventDefault();toggleTerm();return}
