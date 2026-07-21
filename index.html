@@ -4256,10 +4256,15 @@ function ensureDailyTomorrowSection(page){
   return true;
 }
 
+function findLatestDaily(beforeDate){
+  return D.pages.filter(p=>p.icon==='📋'&&p.title&&/^\d{4}-\d{2}-\d{2}/.test(p.title))
+    .filter(p=>p.title.slice(0,10)<beforeDate)
+    .sort((a,b)=>b.title.slice(0,10).localeCompare(a.title.slice(0,10)))[0]||null;
+}
+
 function createDailyTodo(dateStr){
   const now=dateStr?new Date(dateStr+'T00:00:00'):new Date();
   const today=dF(now.getFullYear(),now.getMonth(),now.getDate());
-  const prevDate=addDaysToDateStr(today,-1);
   const weekdays=['일','월','화','수','목','금','토'];
   const dayName=weekdays[now.getDay()];
   const title=`${today} (${dayName})`;
@@ -4267,9 +4272,8 @@ function createDailyTodo(dateStr){
   // 이미 이날 데일리가 있으면 그 페이지로 이동
   const existing=D.pages.find(p=>p.title===title&&p.icon==='📋');
   if(existing){
-    // carry는 최초 1회만 실행 (이미 carry 완료된 페이지에 중복 추가 방지)
     if(!existing.carryDone){
-      const prevDaily=D.pages.find(p=>p.icon==='📋'&&p.title&&p.title.startsWith(prevDate));
+      const prevDaily=findLatestDaily(today);
       const carry=mergeUniqueTexts(
         extractDailySectionTodos(prevDaily,'할 일',{unfinishedOnly:true}),
         extractDailySectionTodos(prevDaily,'내일 할 것')
@@ -4284,7 +4288,7 @@ function createDailyTodo(dateStr){
 
   // 해당 날짜 일정 가져오기
   const dayEvts=getGlobalEvents().filter(e=>e.date===today).sort((a,b)=>(a.startTime||'').localeCompare(b.startTime||''));
-  const prevDaily=D.pages.find(p=>p.icon==='📋'&&p.title&&p.title.startsWith(prevDate));
+  const prevDaily=findLatestDaily(today);
   const tomorrowCarry=mergeUniqueTexts(
     extractDailySectionTodos(prevDaily,'할 일',{unfinishedOnly:true}),
     extractDailySectionTodos(prevDaily,'내일 할 것')
