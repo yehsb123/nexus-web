@@ -853,9 +853,8 @@ function defaultData(){
 }
 
 // ══════════════════════════════════════════
-// NAV
+// NAV & STICKY
 // ══════════════════════════════════════════
-// ── 포스트잇 메모 ──
 let stickyCount=0;
 function openSticky(){
   if(!window.nexus?.stickyCreate){toast('📌 포스트잇은 PC 앱에서만 사용 가능합니다');return}
@@ -1042,6 +1041,9 @@ function openProjectPages(projId){
   </div>`;
   renderList();
 }
+// ══════════════════════════════════════════
+// PAGE CRUD & SEARCH
+// ══════════════════════════════════════════
 function updTitle(){const p=pg();if(!p)return;p.title=document.getElementById('pgTitle').value;p.updatedAt=new Date().toISOString();autoSave();renderList()}
 function newPage(type,folderId){
   const icons={memo:'📝',sheet:'📊',calendar:'📅'};const now=new Date().toISOString();
@@ -1147,9 +1149,11 @@ function filterPages(){
     if(hasChild){const body=el.querySelector('.folder-body');if(body)body.classList.remove('collapsed')}
   });
 }
+// ══════════════════════════════════════════
+// SIDEBAR LIST & FOLDERS
+// ══════════════════════════════════════════
 function renderList(){
   updTrashCount();
-  // 오늘 할 일 퀵리스트
   const todayStr=dF(new Date().getFullYear(),new Date().getMonth(),new Date().getDate());
   const todayPage=D.pages.find(p=>p.icon==='📋'&&p.title&&p.title.startsWith(todayStr));
   const tql=document.getElementById('todoQuickList');
@@ -1446,7 +1450,6 @@ function renderDash(){
   });
 }
 
-// ── 포스트잇 대시보드 카드 ──
 function getStickyCards(){
   return '<div id="dashStickiesInner" style="grid-column:1/-1;color:var(--dim);font-size:12px;padding:14px">로딩...</div>';
 }
@@ -1488,7 +1491,6 @@ async function loadDashStickies(){
   }).join('');
 }
 
-// ── CLAUDE.md 편집 ──
 let claudeMdOriginal='';
 async function loadClaudeMd(){
   let content='';
@@ -1753,7 +1755,9 @@ function openPageInTerm(){
   toast('터미널에서 "'+p.title+'" 열기');
 }
 
-// ── 즐겨찾기 ──
+// ══════════════════════════════════════════
+// FAVORITES & PAGE CONTEXT MENU
+// ══════════════════════════════════════════
 let pgClickTimer=null;
 function pgClick(e,pid){
   if(e.target.closest('.fav')||e.target.closest('.del'))return;
@@ -2317,7 +2321,9 @@ function wrapBlk(el,bid){
   return w;
 }
 
-// ── 블록 드래그 앤 드롭 (마우스 휠 클릭) ──
+// ══════════════════════════════════════════
+// BLOCK DRAG & DROP
+// ══════════════════════════════════════════
 let blkDragEl=null, blkDragBid=null;
 document.addEventListener('mousedown',e=>{
   if(e.button!==1)return;
@@ -2626,7 +2632,9 @@ function saveRecordingAsBlocks(text,audioInfo){
 
 function addBlk(type){const p2=pg(),b={id:gid(),type,content:''};p2.blocks.push(b);p2.updatedAt=new Date().toISOString();autoSave();const el=mkBlk(b);document.getElementById('blocks').appendChild(el);if(type!=='divider'){el.focus();el.scrollIntoView({behavior:'smooth',block:'nearest'})}}
 
-// ── 여러 블록 선택 + 일괄 작업 ──
+// ══════════════════════════════════════════
+// BLOCK MULTI-SELECT & CONTEXT MENU
+// ══════════════════════════════════════════
 let multiSelStart=null;
 
 function updateSelBar(){
@@ -2763,7 +2771,6 @@ function showBM(anchor,bid){const m=document.getElementById('bmenu'),r=anchor.ge
 function hideBM(){document.getElementById('bmenu').style.display='none'}
 function chgBT(bid,type){const p2=pg(),b=p2.blocks.find(x=>x.id===bid);if(!b)return;b.type=type;p2.updatedAt=new Date().toISOString();autoSave();hideBM();renderMemo(p2);const el=document.querySelector(`[data-bid="${bid}"]`);if(el?.contentEditable==='true')el.focus()}
 
-// ── 블록 우클릭 컨텍스트 메뉴 ──
 function hideCtx(){document.getElementById('ctxMenu').style.display='none'}
 function showCtxMenu(e,bid){
   e.preventDefault();
@@ -3998,7 +4005,9 @@ function editGEv(eid){
   setTimeout(updGcalBadge,80);
 }
 
-// ── Google Calendar 연동 ──
+// ══════════════════════════════════════════
+// GOOGLE CALENDAR API
+// ══════════════════════════════════════════
 async function gcalConnect(){
   if(!window.nexus?.gcalAuth){toast('앱 재시작 필요');return}
   toast('Google 로그인 페이지를 여는 중...');
@@ -4041,7 +4050,9 @@ async function gcalDeleteEvent(gcalEventId){
   await window.nexus.gcalDeleteEvent(gcalEventId);
 }
 
-// ── 장소 자동완성 + 지도 ──
+// ══════════════════════════════════════════
+// LOCATION & CONTACTS
+// ══════════════════════════════════════════
 function getKnownLocations(){
   const set=new Set();
   (D.globalEvents||[]).forEach(e=>{if(e.location)set.add(e.location)});
@@ -4140,6 +4151,9 @@ function renderAttendeeList(){
   }).join('');
 }
 
+// ══════════════════════════════════════════
+// EVENT CRUD & DAILY TODO
+// ══════════════════════════════════════════
 function addDaysToDateStr(dateStr,days){
   const parts=(dateStr||'').split('-').map(Number);
   if(parts.length!==3||parts.some(n=>!Number.isFinite(n)))return dateStr||'';
@@ -4374,7 +4388,6 @@ function createDailyFromCal(date){
 // ══════════════════════════════════════════
 // MD FILE IMPORT
 // ══════════════════════════════════════════
-// ── HTML 뷰어 ──
 function openHtmlViewer(title,html){
   // Electron 별도 창으로 열기
   if(window.nexus?.stickyCreate){
@@ -4442,11 +4455,12 @@ function htmlViewerSavePage(){
   toast(title+' 페이지로 저장됨');
 }
 
+// ══════════════════════════════════════════
+// FILE IMPORT & DRAG/DROP
+// ══════════════════════════════════════════
 function openFileImport(){document.getElementById('fileImportModal').classList.add('show')}
 function closeFileImport(){document.getElementById('fileImportModal').classList.remove('show')}
 document.getElementById('fileImportModal').addEventListener('click',e=>{if(e.target.classList.contains('modal-bg'))closeFileImport()});
-
-// Drag & Drop
 const dz=document.getElementById('dropZone');
 dz.addEventListener('dragover',e=>{e.preventDefault();dz.classList.add('drag-over')});
 dz.addEventListener('dragleave',()=>dz.classList.remove('drag-over'));
@@ -4572,9 +4586,10 @@ function savePdfAsPage(){
   toast(title+' 저장 완료');
 }
 
-// ── Claude API ──
+// ══════════════════════════════════════════
+// CLAUDE API (LLM)
+// ══════════════════════════════════════════
 const CLAUDE_API_KEY=localStorage.getItem('nexus_api_key')||'';
-// API 키 설정: 브라우저 콘솔에서 localStorage.setItem('nexus_api_key','sk-ant-...') 실행
 
 async function llmReformat(){
   const text=document.getElementById('pdfExtractText').value;
@@ -4648,7 +4663,6 @@ function saveLlmResult(){
   toast(title+' 저장 완료');
 }
 
-// ── Claude로 현재 페이지 정리 ──
 async function claudeOrganize(){
   const p=pg();
   if(!p||p.type!=='memo'){toast('메모 페이지를 열고 사용하세요');return}
@@ -4955,14 +4969,12 @@ if(window.visualViewport){
   window.visualViewport.addEventListener('resize',adjustFab);
   window.visualViewport.addEventListener('scroll',adjustFab);
 }
-// FAB 외부 클릭 시 닫기
 document.addEventListener('click',e=>{if(!e.target.closest('.mobile-fab')){const m=document.getElementById('fabMenu');const b=document.getElementById('fabBtn');if(m)m.classList.remove('show');if(b)b.classList.remove('open')}});
 function openMobileSb(){document.getElementById('sidebar').classList.add('mobile-open');document.getElementById('sbOverlay').classList.add('show')}
 function closeMobileSb(){document.getElementById('sidebar').classList.remove('mobile-open');document.getElementById('sbOverlay').classList.remove('show')}
 function toggleWebMore(){const m=document.getElementById('webMoreMenu');m.style.display=m.style.display==='none'?'block':'none'}
 document.addEventListener('click',e=>{const m=document.getElementById('webMoreMenu');if(m&&!e.target.closest('.web-more-btn')&&!e.target.closest('#webMoreMenu'))m.style.display='none'});
 
-// New document dropdown
 function toggleNewDocMenu(e){e.stopPropagation();const d=document.getElementById('newDocDropdown');d.classList.toggle('show')}
 function closeNewDocMenu(){document.getElementById('newDocDropdown').classList.remove('show')}
 document.addEventListener('click',e=>{if(!e.target.closest('.new-doc-wrap')){closeNewDocMenu()}});
@@ -5092,7 +5104,9 @@ function renameTermTab(id,tabEl){
   });
 }
 
-// IPC 수신 (다중)
+// ══════════════════════════════════════════
+// IPC & TERMINAL RESIZE
+// ══════════════════════════════════════════
 if(window.nexus){
   window.nexus.onTermData((id,data)=>{const t=terms[id];if(t)t.term.write(data)});
   window.nexus.onTermExit(id=>{const t=terms[id];if(t){t.term.write('\r\n\x1b[31m세션 종료\x1b[0m\r\n');renderTermTabs()}});
@@ -5101,7 +5115,6 @@ if(window.nexus){
 // 전체 resize
 window.addEventListener('resize',()=>{Object.values(terms).forEach(t=>{t.fitAddon.fit();if(window.nexus){const d=t.fitAddon.proposeDimensions();if(d)window.nexus.termResize(Object.keys(terms).find(k=>terms[k]===t),d.cols,d.rows)}})});
 
-// Terminal resize drag
 (function(){
   const bar=document.getElementById('termBar');
   const wrap=document.getElementById('termWrap');
